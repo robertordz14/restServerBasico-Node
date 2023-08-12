@@ -1,40 +1,56 @@
-const {Router} = require('express');
-const { usuariosGet, usuariosPut, usuariosPost, 
-        usuariosDelete, usuariosPatch } = require('../controllers/usuarios');
+
+const { Router } = require('express');
 const { check } = require('express-validator');
 
-const {validarCampos} = require('../middlewares/validar-campos');
-const { RolValido, emailExistente, usuarioExiste } = require('../helpers/db-validators');
+const {
+    validarCampos,
+    validarJWT,
+    esAdminRole,
+    tieneRole
+} = require('../middlewares');
+
+
+const {  RolValido, emailExistente, usuarioExiste } = require('../helpers/db-validators');
+
+const { usuariosGet,
+        usuariosPut,
+        usuariosPost,
+        usuariosDelete,
+        usuariosPatch } = require('../controllers/usuarios');
 
 const router = Router();
 
-    router.get('/',usuariosGet);
 
-    router.put('/:id',[
-        check('id', 'No es un ID válido').isMongoId(),
-        check('id').custom(usuarioExiste),
-        check('rol').custom( RolValido ),
-        validarCampos
-    ], usuariosPut);
+router.get('/', usuariosGet );
 
-    router.post('/',[
-        check('nombre', 'El nombre es obligatorio').not().isEmpty(),
-        check('password', 'El password debe ser mayor a 6 caracteres').isLength({min: 6 }),
-        check('correo', 'El correo no es válido').isEmail(),
-        check('correo').custom(emailExistente),
-        // check('rol', 'No es un rol válido').isIn(['ADMIN_ROLE', 'USER_ROLE']),
-        check('rol').custom( RolValido ),
-        validarCampos
+router.put('/:id',[
+    check('id', 'No es un ID válido').isMongoId(),
+    check('id').custom( usuarioExiste ),
+    check('rol').custom( RolValido  ), 
+    validarCampos
+],usuariosPut );
 
-    ],usuariosPost); 
+router.post('/',[
+    check('nombre', 'El nombre es obligatorio').not().isEmpty(),
+    check('password', 'El password debe de ser más de 6 letras').isLength({ min: 6 }),
+    check('correo', 'El correo no es válido').isEmail(),
+    check('correo').custom( emailExistente ),
+    // check('rol', 'No es un rol válido').isIn(['ADMIN_ROLE','USER_ROLE']),
+    check('rol').custom( RolValido  ), 
+    validarCampos
+], usuariosPost );
 
-    router.patch('/',usuariosPatch);
+router.delete('/:id',[
+    validarJWT,
+    // esAdminRole,
+    tieneRole('ADMIN_ROLE','VENTAS_ROLE','OTRO_ROLE'),
+    check('id', 'No es un ID válido').isMongoId(),
+    check('id').custom( usuarioExiste ),
+    validarCampos
+],usuariosDelete );
 
-    router.delete('/:id',[
-        check('id', 'No es un ID válido').isMongoId(),
-        check('id').custom(usuarioExiste),
-        validarCampos
-    ],usuariosDelete);
+router.patch('/', usuariosPatch );
+
 
 
 
